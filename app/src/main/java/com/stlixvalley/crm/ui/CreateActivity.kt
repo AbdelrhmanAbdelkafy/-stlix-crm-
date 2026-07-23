@@ -4,9 +4,11 @@ import android.os.Bundle
 import android.text.InputType
 import android.view.View
 import android.view.MenuItem
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.Spinner
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.stlixvalley.crm.App
@@ -17,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -30,6 +33,8 @@ class CreateActivity : AppCompatActivity() {
     private val scope = MainScope()
     private lateinit var module: CrmModule
     private val inputs = LinkedHashMap<String, EditText>()
+    private val users = ArrayList<Pair<String, String>>() // id -> display name
+    private var ownerSpinner: Spinner? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,11 +50,20 @@ class CreateActivity : AppCompatActivity() {
 
         save.isEnabled = false
         scope.launch {
-            val fields = withContext(Dispatchers.IO) {
-                runCatching { editableFields(v.describe(module.module)) }.getOrDefault(emptyList())
+            val loaded = withContext(Dispatchers.IO) {
+                val fields = runCatching { editableFields(v.describe(module.module)) }.getOrDefault(emptyList())
+                val us = runCatching {
+                    parseUsers(v.query("SELECT id, first_name, last_name, user_name FROM Users;"))
+                }.getOrDefault(emptyList())
+                fields to us
             }
+            val (fields, us) = loaded
             if (fields.isEmpty()) { status.text = getString(R.string.load_failed, ""); return@launch }
             status.visibility = View.GONE
+            if (us.isNotEmpty()) {
+                users.addAll(us)
+                addOwnerSpinner(form, v.userId)
+            }
             for (f in fields) {
                 val row = layoutInflater.inflate(R.layout.item_input, form, false)
                 row.findViewById<TextView>(R.id.inputLabel).text = f.label + if (f.mandatory) " *" else ""
@@ -72,8 +86,9 @@ class CreateActivity : AppCompatActivity() {
                 val t = edit.text.toString().trim()
                 if (t.isNotEmpty()) element.put(name, t)
             }
-            // mandatory owner reference -> current user
-            v.userId?.let { element.put("assigned_user_id", it) }
+            // owner reference -> the chosen assignee, else the current user
+            val owner = ownerSpinner?.let { users.getOrNull(it.selectedItemPosition)?.first } ?: v.userId
+            owner?.let { element.put("assigned_user_id", it) }
 
             save.isEnabled = false
             status.visibility = View.VISIBLE
@@ -86,6 +101,47 @@ class CreateActivity : AppCompatActivity() {
                     .onFailure { status.text = getString(R.string.save_failed, it.message ?: ""); save.isEnabled = true }
             }
         }
+    }
+
+    private fun parseUsers(arr: JSONArray): List<Pair<String, String>> {
+        val out = ArrayList<Pair<String, String>>()
+        for (i in 0 until arr.length()) {
+            val u = arr.getJSONObject(i)
+            val name = listOf(u.optString("first_name"), u.optString("last_name"))
+                .filter { it.isNotBlank() }.joinToString(" ")
+                .ifBlank { u.optString("user_name") }
+            val id = u.optString("id")
+            if (id.isNotBlank()) out.add(id to name)
+        }
+        return out
+    }
+
+    /** Dropdown to assign the new record to any user; defaults to the current one. */
+    private fun addOwnerSpinner(form: LinearLayout, currentUserId: String?) {
+        val label = TextView(this).apply {
+            text = getString(R.string.assign_to)
+            setTextColor(0xFF0D2534.toInt())
+            textSize = 13f
+        }
+        val spinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@CreateActivity, android.R.layout.simple_spinner_dropdown_item,
+                users.map { it.second },
+            )
+        }
+        users.indexOfFirst { it.first == currentUserId }.takeIf { it >= 0 }?.let { spinner.setSelection(it) }
+        ownerSpinner = spinner
+        val wrap = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            lp.bottomMargin = (12 * resources.displayMetrics.density).toInt()
+            layoutParams = lp
+            addView(label)
+            addView(spinner)
+        }
+        form.addView(wrap, 0)
     }
 
     private data class Field(val name: String, val label: String, val type: String, val mandatory: Boolean)

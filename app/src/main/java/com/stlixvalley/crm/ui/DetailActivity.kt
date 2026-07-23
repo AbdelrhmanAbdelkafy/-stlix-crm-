@@ -1,10 +1,12 @@
 package com.stlixvalley.crm.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.stlixvalley.crm.App
 import com.stlixvalley.crm.R
@@ -45,7 +47,7 @@ class DetailActivity : AppCompatActivity() {
             }
             res.onSuccess { (rec, labels) ->
                 status.visibility = View.GONE
-                addWhatsAppButton(container, rec)
+                addActions(container, rec)
                 for (key in rec.keys()) {
                     val value = rec.optString(key)
                     if (value.isBlank() || key == "id") continue
@@ -58,46 +60,54 @@ class DetailActivity : AppCompatActivity() {
         }
     }
 
-    /** Free WhatsApp via a wa.me deep-link — opens WhatsApp with a ready message
-     *  to the record's mobile/phone. No paid Business API needed. */
-    private fun addWhatsAppButton(container: LinearLayout, rec: JSONObject) {
-        val raw = listOf("mobile", "phone", "homephone", "otherphone")
-            .map { rec.optString(it) }
-            .firstOrNull { it.isNotBlank() && it.count { c -> c.isDigit() } >= 8 } ?: return
-        val number = normalizeNumber(raw)
-        if (number.length < 10) return
+    /** Free, phone-native actions at the top of every record: WhatsApp (if there's
+     *  a phone), Email (if there's an address), Add-to-calendar (if there's a date). */
+    private fun addActions(container: LinearLayout, rec: JSONObject) {
+        val name = listOf("firstname", "potentialname", "subject", "ticket_title")
+            .map { rec.optString(it) }.firstOrNull { it.isNotBlank() } ?: module.title
+        val phone = Actions.firstPhone(rec)
+        val email = Actions.firstEmail(rec)
+        val date = rec.optString("date_start")
 
-        val btn = com.google.android.material.button.MaterialButton(this).apply {
-            text = getString(R.string.whatsapp)
-            setBackgroundColor(0xFF25D366.toInt())
+        val bar = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            lp.bottomMargin = dp(8)
+            layoutParams = lp
+        }
+        if (phone != null) bar.addView(actionButton(getString(R.string.whatsapp), 0xFF25D366.toInt()) {
+            openIntent(Actions.whatsApp(phone, getString(R.string.whatsapp_greeting, name).trim()), R.string.whatsapp_missing)
+        })
+        if (email != null) bar.addView(actionButton(getString(R.string.send_email), 0xFF1A73E8.toInt()) {
+            openIntent(Actions.email(email), R.string.email_missing)
+        })
+        if (date.isNotBlank()) bar.addView(actionButton(getString(R.string.add_to_calendar), 0xFF6A4C93.toInt()) {
+            openIntent(Actions.calendar(name, module.title, date), R.string.calendar_missing)
+        })
+        if (bar.childCount > 0) container.addView(bar, 0)
+    }
+
+    private fun actionButton(label: String, color: Int, onClick: () -> Unit) =
+        com.google.android.material.button.MaterialButton(this).apply {
+            text = label
+            setBackgroundColor(color)
             setTextColor(0xFFFFFFFF.toInt())
             val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT,
             )
-            lp.bottomMargin = (12 * resources.displayMetrics.density).toInt()
+            lp.bottomMargin = dp(8)
             layoutParams = lp
-            setOnClickListener {
-                val name = rec.optString("firstname").ifBlank { rec.optString("potentialname") }
-                val hi = getString(R.string.whatsapp_greeting, name).trim()
-                val url = "https://wa.me/$number?text=" + android.net.Uri.encode(hi)
-                runCatching {
-                    startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
-                }.onFailure {
-                    android.widget.Toast.makeText(this@DetailActivity, R.string.whatsapp_missing, android.widget.Toast.LENGTH_LONG).show()
-                }
-            }
+            setOnClickListener { onClick() }
         }
-        container.addView(btn, 0)
+
+    private fun openIntent(intent: Intent, failMsg: Int) {
+        runCatching { startActivity(intent) }
+            .onFailure { Toast.makeText(this, failMsg, Toast.LENGTH_LONG).show() }
     }
 
-    /** Egypt-friendly normalization: keep digits, turn a leading 0 into 20. */
-    private fun normalizeNumber(raw: String): String {
-        var d = raw.filter { it.isDigit() }
-        if (d.startsWith("00")) d = d.drop(2)
-        if (d.startsWith("0")) d = "20" + d.drop(1)
-        return d
-    }
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
     private fun fieldLabels(describe: JSONObject): Map<String, String> {
         val out = HashMap<String, String>()

@@ -2,13 +2,16 @@ package com.stlixvalley.crm.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.stlixvalley.crm.App
 import com.stlixvalley.crm.R
+import com.stlixvalley.crm.data.Modules
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -108,8 +111,28 @@ class ActivitiesActivity : AppCompatActivity() {
         }
     }
 
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menu.add(0, 1, 0, getString(R.string.add)).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+        return true
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) { finish(); return true }
+        when (item.itemId) {
+            android.R.id.home -> { finish(); return true }
+            1 -> { pickTypeAndAdd(); return true }
+        }
         return super.onOptionsItemSelected(item)
+    }
+
+    /** "+" on the combo asks which kind of activity to create, then opens the form. */
+    private fun pickTypeAndAdd() {
+        val keys = listOf("tasks", "events", "tickets")
+        val labels = keys.map { k -> Modules.byKey(k).let { "${it.emoji}  ${it.title}" } }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.add)
+            .setItems(labels) { _, which ->
+                startActivity(Intent(this, CreateActivity::class.java).putExtra("module", keys[which]))
+            }
+            .show()
     }
 }

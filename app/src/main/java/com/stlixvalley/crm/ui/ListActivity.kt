@@ -7,6 +7,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.stlixvalley.crm.App
 import com.stlixvalley.crm.R
@@ -72,6 +73,20 @@ class ListActivity : AppCompatActivity() {
             row.findViewById<TextView>(R.id.recSubtitle).apply {
                 text = sub
                 visibility = if (sub.isEmpty()) View.GONE else View.VISIBLE
+            }
+            // Quick WhatsApp straight from the contact row.
+            val wa = row.findViewById<TextView>(R.id.recWhatsApp)
+            val phone = Actions.firstPhone(r)
+            if (module.key == "contacts" && phone != null) {
+                wa.visibility = View.VISIBLE
+                wa.setOnClickListener {
+                    val name = r.optString("firstname")
+                    val greeting = getString(R.string.whatsapp_greeting, name).trim()
+                    runCatching { startActivity(Actions.whatsApp(phone, greeting)) }
+                        .onFailure { Toast.makeText(this, R.string.whatsapp_missing, Toast.LENGTH_LONG).show() }
+                }
+            } else {
+                wa.visibility = View.GONE
             }
             row.setOnClickListener {
                 startActivity(
