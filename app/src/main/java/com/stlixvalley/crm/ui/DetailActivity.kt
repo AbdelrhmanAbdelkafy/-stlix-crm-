@@ -45,6 +45,7 @@ class DetailActivity : AppCompatActivity() {
             }
             res.onSuccess { (rec, labels) ->
                 status.visibility = View.GONE
+                addWhatsAppButton(container, rec)
                 for (key in rec.keys()) {
                     val value = rec.optString(key)
                     if (value.isBlank() || key == "id") continue
@@ -55,6 +56,47 @@ class DetailActivity : AppCompatActivity() {
                 }
             }.onFailure { status.text = getString(R.string.load_failed, it.message ?: "") }
         }
+    }
+
+    /** Free WhatsApp via a wa.me deep-link — opens WhatsApp with a ready message
+     *  to the record's mobile/phone. No paid Business API needed. */
+    private fun addWhatsAppButton(container: LinearLayout, rec: JSONObject) {
+        val raw = listOf("mobile", "phone", "homephone", "otherphone")
+            .map { rec.optString(it) }
+            .firstOrNull { it.isNotBlank() && it.count { c -> c.isDigit() } >= 8 } ?: return
+        val number = normalizeNumber(raw)
+        if (number.length < 10) return
+
+        val btn = com.google.android.material.button.MaterialButton(this).apply {
+            text = getString(R.string.whatsapp)
+            setBackgroundColor(0xFF25D366.toInt())
+            setTextColor(0xFFFFFFFF.toInt())
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            lp.bottomMargin = (12 * resources.displayMetrics.density).toInt()
+            layoutParams = lp
+            setOnClickListener {
+                val name = rec.optString("firstname").ifBlank { rec.optString("potentialname") }
+                val hi = getString(R.string.whatsapp_greeting, name).trim()
+                val url = "https://wa.me/$number?text=" + android.net.Uri.encode(hi)
+                runCatching {
+                    startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                }.onFailure {
+                    android.widget.Toast.makeText(this@DetailActivity, R.string.whatsapp_missing, android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+        container.addView(btn, 0)
+    }
+
+    /** Egypt-friendly normalization: keep digits, turn a leading 0 into 20. */
+    private fun normalizeNumber(raw: String): String {
+        var d = raw.filter { it.isDigit() }
+        if (d.startsWith("00")) d = d.drop(2)
+        if (d.startsWith("0")) d = "20" + d.drop(1)
+        return d
     }
 
     private fun fieldLabels(describe: JSONObject): Map<String, String> {

@@ -26,7 +26,17 @@ class HomeActivity : AppCompatActivity() {
         title = getString(R.string.app_name)
 
         val container = findViewById<LinearLayout>(R.id.moduleList)
-        for (m in Modules.all) {
+
+        // Combined activities (tasks + events + tickets) — the "combo" card.
+        val combo = layoutInflater.inflate(R.layout.item_module, container, false)
+        combo.findViewById<TextView>(R.id.moduleTitle).text =
+            "🗂️  ${getString(R.string.activities)}"
+        combo.setOnClickListener {
+            startActivity(Intent(this, ActivitiesActivity::class.java))
+        }
+        container.addView(combo)
+
+        for (m in Modules.homeCards) {
             val card = layoutInflater.inflate(R.layout.item_module, container, false)
             card.findViewById<TextView>(R.id.moduleTitle).text = "${m.emoji}  ${m.title}"
             card.setOnClickListener {

@@ -17,4 +17,8 @@
     <string name="save">حفظ</string>
     <string name="saving">جاري الحفظ…</string>
     <string name="save_failed">تعذّر الحفظ: %1$s</string>
+    <string name="activities">الأنشطة (مهام · أحداث · تيكتات)</string>
+    <string name="whatsapp">مراسلة واتساب</string>
+    <string name="whatsapp_greeting">أهلاً %1$s،</string>
+    <string name="whatsapp_missing">واتساب غير مثبّت على الجهاز</string>
 </resources>
