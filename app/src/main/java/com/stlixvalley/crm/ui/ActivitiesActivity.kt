@@ -90,16 +90,18 @@ class ActivitiesActivity : AppCompatActivity() {
     private fun render(items: List<Item>) {
         if (items.isEmpty()) { status.text = getString(R.string.no_records); return }
         status.visibility = View.GONE
-        for (it in items) {
+        for (item in items) {
             val row = layoutInflater.inflate(R.layout.item_activity, container, false)
-            row.findViewById<TextView>(R.id.actType).apply { text = it.type; setBackgroundColor(it.color) }
-            row.findViewById<TextView>(R.id.actTitle).text = it.title
+            row.findViewById<TextView>(R.id.actType).apply {
+                text = item.type; setBackgroundColor(item.color)
+            }
+            row.findViewById<TextView>(R.id.actTitle).text = item.title
             row.findViewById<TextView>(R.id.actMeta).text =
-                listOf(it.date, it.sub).filter { s -> s.isNotBlank() }.joinToString("  ·  ")
+                listOf(item.date, item.sub).filter { s -> s.isNotBlank() }.joinToString("  ·  ")
             row.setOnClickListener {
                 startActivity(
                     Intent(this, DetailActivity::class.java)
-                        .putExtra("module", it.moduleKey).putExtra("id", it.id)
+                        .putExtra("module", item.moduleKey).putExtra("id", item.id)
                 )
             }
             container.addView(row)
