@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">STLIX CRM</string>
+    <string name="crm_url">رابط الـ CRM</string>
+    <string name="username">اسم المستخدم</string>
+    <string name="access_key">مفتاح الوصول (Access Key)</string>
+    <string name="access_key_hint">من My Preferences في Vtiger (مش الباسورد)</string>
+    <string name="login">دخول</string>
+    <string name="fill_all_fields">املأ كل الحقول</string>
+    <string name="logging_in">جاري الدخول…</string>
+    <string name="login_failed">فشل الدخول: %1$s</string>
+    <string name="loading">جاري التحميل…</string>
+    <string name="load_failed">تعذّر التحميل: %1$s</string>
+    <string name="no_records">لا توجد سجلات</string>
+    <string name="add">إضافة</string>
+    <string name="add_to">إضافة إلى %1$s</string>
+    <string name="save">حفظ</string>
+    <string name="saving">جاري الحفظ…</string>
+    <string name="save_failed">تعذّر الحفظ: %1$s</string>
+</resources>

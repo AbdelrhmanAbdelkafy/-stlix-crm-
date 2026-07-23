@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="stlix_navy">#042B43</color>
+    <color name="stlix_navy2">#0B3C5A</color>
+    <color name="stlix_orange">#F05223</color>
+    <color name="stlix_steel">#8CA3B0</color>
+    <color name="stlix_bg">#F2F5F7</color>
+    <color name="white">#FFFFFF</color>
+    <color name="ink">#0D2534</color>
+</resources>

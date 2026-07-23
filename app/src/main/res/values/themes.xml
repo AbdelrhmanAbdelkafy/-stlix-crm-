@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.StlixCrm" parent="Theme.Material3.DayNight">
+        <item name="colorPrimary">@color/stlix_navy</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/stlix_orange</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:statusBarColor">@color/stlix_navy</item>
+        <item name="android:windowBackground">@color/stlix_bg</item>
+    </style>
+</resources>
